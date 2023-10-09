@@ -68,7 +68,7 @@ def find_urls_in_response(page_content: str, re_pattern: str, url: str, type_url
 
 def url2domain(url, with_subdomains=True, with_protocol=True) -> str:
     """Returns domain from provided url"""
-    tsd, td, tsu = tldextract.extract(url)
+    tsd, td, tsu, _ = tldextract.extract(url)
     if tsd:
         tsd = tsd + "."
     if with_protocol:
