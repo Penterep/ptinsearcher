@@ -105,8 +105,9 @@ ptlibs
 
 ## Version History
 ```
-1.0.3
+1.0.3 - 1.0.4
     - <file> error fix
+    - content-type error fix
 1.0.1 - 1.0.2
     - tldextract version fix
 1.0.0
