@@ -68,21 +68,15 @@ def find_urls_in_response(page_content: str, re_pattern: str, url: str, type_url
 
 def url2domain(url, with_subdomains=True, with_protocol=True) -> str:
     """Returns domain from provided url"""
-    tsd, td, tsu, _ = tldextract.extract(url)
-    if tsd:
-        tsd = tsd + "."
-    if with_protocol:
-        protocol = url.split("//")[0] + "//"
-    else:
-        protocol = ""
+    extract = tldextract.extract(url)
+    protocol = url.split("//")[0] + "//" if with_protocol else ""
     if with_subdomains:
-        if not tsu:
-            return protocol + tsd + td
-        return protocol + tsd + td + "." + tsu
+        if not extract.suffix:
+            return protocol + extract.subdomain + extract.domain
+        else:
+            return protocol + extract.subdomain + "." + extract.domain + "." + extract.suffix
     else:
-        if not tsu:
-            return protocol + td + "." + tsu
-        return protocol + td + "." + tsu
+        return protocol + extract.domain + "." + extract.suffix
 
 
 def rel2abs(url, domain):
