@@ -105,7 +105,7 @@ ptlibs
 
 ## Version History
 ```
-1.0.1
+1.0.1 - 1.0.2
     - tldextract version fix
 1.0.0
     - Script logically divided into relevant submodules
