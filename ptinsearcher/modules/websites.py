@@ -107,7 +107,7 @@ def _sort(url_list):
     return sorted(url_list, key=lambda k: k['url'])
 
 def _get_soup(string, response):
-    if "xml" in response.headers['Content-Type'] or response.url.endswith("xml"):
+    if "xml" in response.headers.get('Content-Type') or response.url.endswith("xml"):
         return None
     soup = BeautifulSoup(string, "lxml")
     bdos = soup.find_all("bdo", {"dir": "rtl"})
