@@ -141,18 +141,19 @@ class PtInsearcher:
     def _get_url_list(self, args) -> list:
         if args.file:
             try:
-                url_list = self._read_file(args.file, args.domain)
+                domain = None
+                if args.domain:
+                    domain = self._adjust_domain(args.domain)
+                url_list = self._read_file(args.file, domain)
+                return url_list
             except FileNotFoundError:
                 self.ptjsonlib.end_error(f"File not found {os.path.join(os.getcwd(), args.file)}", self.use_json)
-        elif args.url:
-            url_list = args.url
-        return url_list
+        return args.url
 
-    def _read_file(self, filepath, domain) -> list:
+    def _read_file(self, filepath, domain=None) -> list:
         target_list = []
-        domain = self._adjust_domain(domain)
-        with open(filepath, "r") as file:
-            for line in file:
+        with open(filepath, "r") as f:
+            for line in f:
                 line = line.strip("\n")
                 if domain:
                     path = urllib.parse.urlparse(line).path
@@ -162,6 +163,7 @@ class PtInsearcher:
                     target_list.append(domain + path)
                 else:
                     if re.match('https?:\/\/', line):
+                        while line.endswith("/"): line = line[:-1]
                         target_list.append(line)
         return target_list
 
