@@ -4,6 +4,8 @@ from ptinsearcher._version import __version__
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+
+
 setuptools.setup(
     name="ptinsearcher",
     description="Source information extractor",
@@ -26,4 +28,8 @@ setuptools.setup(
     include_package_data= True,
     long_description=long_description,
     long_description_content_type="text/markdown",
+    project_urls = {
+        "Source": "https://github.com/Penterep/ptinsearcher",
+        "Facebook": "https://facebook.com/penterep"
+    }
 )
