@@ -41,26 +41,26 @@ def find_abs_urls(string: str) -> list:
     return sorted(set(''.join(url) for url in re.findall(re_abs_url, string)))
 
 
-def find_urls_in_response(page_content: str, re_pattern: str, url: str, type_urls: str, without_parameters=None) -> list:
+def find_urls_in_response(page_content: str, re_pattern: str, url: str, type_urls: str, without_parameters=None, abs_urls=[]) -> list:
     """Find urls in <page_content> based by applied <re_pattern>"""
     result = []
     domain = url2domain(url)
-    all_urls = list({result[1] for result in re.findall(re_pattern, page_content)})
+    all_urls = list({result[1] for result in re.findall(re_pattern, page_content)}) + abs_urls
     for found_url in all_urls:
-        if found_url.startswith("mailto:") or found_url.startswith("javascript:"):
+        if re.match(r'\w*://', found_url) and not re.match(r'https?', found_url):
             continue
         if found_url.startswith("//"):
-            o = urllib.parse.urlparse(url)
-            all_urls.append(o.scheme + ":" + found_url)
+            all_urls.append(url.split("://")[0] + ":" + found_url)
             continue
+
         abs_url = rel2abs(found_url, domain)
-        o = urllib.parse.urlparse(abs_url)
+        parsed_url = urllib.parse.urlparse(abs_url)
         if without_parameters:
-            abs_url = urllib.parse.urlunsplit((o[0], o[1], o[2], "", ""))
+            abs_url = urllib.parse.urlunsplit((parsed_url[0], parsed_url[1], parsed_url[2], "", ""))
         if type_urls == "external" and (url2domain(abs_url, False, False) != url2domain(url, False, False)):
             result.append(abs_url)
         if (type_urls == "subdomain") and (url2domain(abs_url, False, False) == url2domain(url, False, False)):
-            result.append(o.netloc)
+            result.append(parsed_url.netloc)
         if type_urls == "internal" and (url2domain(abs_url, True, False) == url2domain(url, True, False)):
             result.append(abs_url)
     return sorted(list(set(result)), key=str.lower)
@@ -68,13 +68,15 @@ def find_urls_in_response(page_content: str, re_pattern: str, url: str, type_url
 
 def url2domain(url, with_subdomains=True, with_protocol=True) -> str:
     """Returns domain from provided url"""
-    extract = tldextract.extract(url)
     protocol = url.split("//")[0] + "//" if with_protocol else ""
+    extract = tldextract.extract(url)
+    if extract.subdomain:
+        extract.subdomain += "."
     if with_subdomains:
-        if not extract.suffix:
+        if not extract.suffix: # e.g. ip address
             return protocol + extract.subdomain + extract.domain
         else:
-            return protocol + extract.subdomain + "." + extract.domain + "." + extract.suffix
+            return protocol + extract.subdomain + extract.domain + "." + extract.suffix
     else:
         return protocol + extract.domain + "." + extract.suffix
 

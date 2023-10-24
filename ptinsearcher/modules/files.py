@@ -79,9 +79,13 @@ def _scrape_file(filepath: str, ptjsonlib, args, extract_types: dict, is_readabl
         return result_data
 
 
-def _get_soup(string):
-    soup = BeautifulSoup(string, "lxml")
-    bdos = soup.find_all("bdo", {"dir": "rtl"})
-    for item in bdos:
-        item.string.replace_with(item.text[::-1])
-    return soup
+def _get_soup(string, args):
+    if "<!ENTITY".lower() in string.lower():
+        ptprinthelper.ptprint(f"Forbidden entities found", "ERROR", not args.use_json, colortext=True)
+        return False
+    else:
+        soup = BeautifulSoup(string, features="lxml")
+        bdos = soup.find_all("bdo", {"dir": "rtl"})
+        for item in bdos:
+            item.string.replace_with(item.text[::-1])
+        return soup

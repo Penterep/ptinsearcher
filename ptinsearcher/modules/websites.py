@@ -19,6 +19,7 @@ def process_website(url: str, args, ptjsonlib: object, extract_types: dict) -> d
     args.use_json = args.json
     response.encoding = response.apparent_encoding
     content_type = str(response.headers.get("content-type")).split(";")[0]
+
     ptprinthelper.ptprint(f"Source-Type.................: website", "TITLE", not args.use_json)
     ptprinthelper.ptprint(f"Content-Type................: {content_type}", "TITLE", not args.use_json)
     ptprinthelper.ptprint(f"Status Code.................: {response.status_code}", "TITLE", not args.use_json, end=" ")
@@ -26,12 +27,16 @@ def process_website(url: str, args, ptjsonlib: object, extract_types: dict) -> d
     if _stop_on_redirect(response, args):
         return
     else:
-        result_data = _scrape_website(response, ptjsonlib, args, extract_types, soup=_get_soup(response.text, response))
-        return result_data
+        if response.content:
+            result_data = _scrape_website(response, ptjsonlib, args, extract_types)
+            return result_data
+        else:
+            ptprinthelper.ptprint(f"Response returned no content", "ERROR", not args.use_json, newline_above=True)
 
-def _scrape_website(response, ptjsonlib, args, extract_types: dict, soup=None) -> dict:
+def _scrape_website(response, ptjsonlib, args, extract_types: dict) -> dict:
         """Extracts <extract_types> from HTML page"""
         result_data = {"url": response.url, "metadata": None, "emails": None, "phones": None, "ip_addresses": None, "abs_urls": None, "internal_urls": None, "internal_urls_with_parameters": None, "external_urls": None, "subdomains": None, "forms": None, "comments": None}
+        soup = _get_soup(response, args)
         page_content = urllib.parse.unquote(urllib.parse.unquote(html.unescape(soup.prettify()))) if soup else urllib.parse.unquote(urllib.parse.unquote(html.unescape(response.text)))
 
         if extract_types["metadata"]:
@@ -59,23 +64,22 @@ def _scrape_website(response, ptjsonlib, args, extract_types: dict, soup=None) -
             ptjsonlib.add_node(ptjsonlib.create_node_object("abs_urls", None, None, properties={"abs_urls": result_data["abs_urls"]}))
 
         if extract_types["internal_urls"] or extract_types["internal_urls_with_parameters"]:
-            result_data["internal_urls"] = urls.find_urls_in_response(page_content, r'(href=|src=)[\'"](.+?)[\'"]', response.url, "internal", without_parameters=args.without_parameters)
+            result_data["internal_urls"] = urls.find_urls_in_response(page_content, r'(href=|src=)[\'"](.+?)[\'"]', response.url, "internal", without_parameters=args.without_parameters, abs_urls = result_data["abs_urls"])
             ptjsonlib.add_node(ptjsonlib.create_node_object("internal_urls", None, None, properties={"internal_urls": result_data["internal_urls"]}))
 
         if extract_types["internal_urls_with_parameters"]:
             result_data["internal_urls_with_parameters"] = _sort(urls._find_internal_parameters(result_data["internal_urls"], group_parameters=args.group_parameters))
             ptjsonlib.add_node(ptjsonlib.create_node_object("internal_urls_with_parameters", None, None, properties={"internal_urls_with_parameters": result_data["internal_urls_with_parameters"]}))
+            if not extract_types["internal_urls"]:
+                result_data["internal_urls"] = None
 
         if extract_types["external_urls"]:
-            result_data['external_urls'] = urls.find_urls_in_response(page_content, r'(href=|src=)[\'"](.+?)[\'"]', response.url, "external", without_parameters=args.without_parameters)
+            result_data['external_urls'] = urls.find_urls_in_response(page_content, r'(href=|src=)[\'"](.+?)[\'"]', response.url, "external", without_parameters=args.without_parameters, abs_urls=result_data["abs_urls"])
             ptjsonlib.add_node(ptjsonlib.create_node_object("external_urls", None, None, properties={"external_urls": result_data["external_urls"]}))
 
         if extract_types["subdomains"]:
-            result_data['subdomains'] = urls.find_urls_in_response(page_content, r'(href=|src=)[\'"](.+?)[\'"]', response.url, "subdomain", without_parameters=args.without_parameters)
+            result_data['subdomains'] = urls.find_urls_in_response(page_content, r'(href=|src=)[\'"](.+?)[\'"]', response.url, "subdomain", without_parameters=args.without_parameters, abs_urls=result_data["abs_urls"])
             ptjsonlib.add_node(ptjsonlib.create_node_object("subdomains", None, None, properties={"subdomains": result_data["subdomains"]}))
-
-        if not extract_types["internal_urls"]:
-            result_data["internal_urls"] = None
 
         if soup:
             if extract_types["forms"]:
@@ -106,15 +110,17 @@ def parse_robots_txt(response):
 def _sort(url_list):
     return sorted(url_list, key=lambda k: k['url'])
 
-def _get_soup(string, response):
-    if "xml" in response.headers.get('Content-Type') or response.url.endswith("xml"):
-        return None
-    soup = BeautifulSoup(string, "lxml")
-    bdos = soup.find_all("bdo", {"dir": "rtl"})
-    for item in bdos:
-        item.string.replace_with(item.text[::-1])
-    return soup
 
+def _get_soup(response, args):
+    if "<!ENTITY".lower() in response.text.lower():
+        ptprinthelper.ptprint(f"Forbidden entities found", "ERROR", not args.use_json, colortext=True)
+        return False
+    else:
+        soup = BeautifulSoup(response.text, features="lxml")
+        bdos = soup.find_all("bdo", {"dir": "rtl"})
+        for item in bdos:
+            item.string.replace_with(item.text[::-1])
+        return soup
 
 def _stop_on_redirect(response, args):
     if response.is_redirect and not args.redirects:
