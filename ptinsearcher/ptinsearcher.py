@@ -47,7 +47,6 @@ class PtInsearcher:
         self.output_parts           = args.output_parts
         self.file_handler           = open(self.output_file, "w") if args.output and not args.output_parts else None
 
-        args.use_json = args.json
         args.file_handle = open(self.output_file, "w") if args.output and not args.output_parts else None
         if args.output and not args.output_parts:
             args.file_handle = open(args.output, "w")
@@ -114,6 +113,10 @@ class PtInsearcher:
                 metadata.exiftool_is_executable()
             except PermissionError as e:
                 self.ptjsonlib.end_error(str(e), self.use_json)
+        if (args.extension_yes or args.extension_no) and not args.file:
+            self.ptjsonlib.end_error("--file required for usage of --extension-yes / --extension-no parameters", self.use_json)
+        if args.extension_yes and args.extension_no:
+            self.ptjsonlib.end_error("Cannot combine --extension-yes together with --extension-no", self.use_json)
 
     def _is_file(self, source: str) -> bool:
         """Check whether the provided source is an existing file or not"""
@@ -138,19 +141,26 @@ class PtInsearcher:
             domain += "/"
         return domain
 
+
+
+
+
     def _get_url_list(self, args) -> list:
         if args.file:
             try:
-                domain = None
-                if args.domain:
-                    domain = self._adjust_domain(args.domain)
-                url_list = self._read_file(args.file, domain)
+                url_list = self._read_file(args.file, args.domain)
+                if args.extension_yes:
+                   url_list = list(dict.fromkeys([url for url in url_list if url.endswith(tuple(args.extension_yes))]))
+                if args.extension_no:
+                    url_list = list(dict.fromkeys([url for url in url_list if not url.endswith(tuple(args.extension_no))]))
                 return url_list
             except FileNotFoundError:
                 self.ptjsonlib.end_error(f"File not found {os.path.join(os.getcwd(), args.file)}", self.use_json)
-        return args.url
+        else:
+            return args.url
 
-    def _read_file(self, filepath, domain=None) -> list:
+    def _read_file(self, filepath, domain) -> list:
+        domain = self._adjust_domain(domain) if domain else None
         target_list = []
         with open(filepath, "r") as f:
             for line in f:
@@ -170,13 +180,10 @@ class PtInsearcher:
     def _adjust_domain(self, domain: str) -> str:
         """Adjusts provided <domain>"""
         o = urllib.parse.urlparse(domain)
-        self._check_scheme(o.scheme)
+        if not re.match("http[s]?$", o.scheme):
+            self.ptjsonlib.end_error(f"Missing or invalid scheme, supported schemes are: [HTTP, HTTPS]", self.use_json)
         return domain + "/" if not o.path.endswith("/") else domain
 
-    def _check_scheme(self, scheme: str) -> None:
-        """Checks whether provided scheme is valid"""
-        if not re.match("http[s]?$", scheme):
-            self.ptjsonlib.end_error(f"Missing or invalid scheme, supported schemes are: [HTTP, HTTPS]", self.use_json)
 
     def _get_extract_types(self, extract_str: str) -> dict:
         allowed_letters = {
@@ -234,17 +241,19 @@ def get_help():
             ["-f",  "--file",                   "<file>",           "Load URL list from file"],
             ["-d",  "--domain",                 "<domain>",         "Domain - merge domain with filepath. Use when wordlist contains filepaths (e.g. /index.php)"],
             ["-e",  "--extract",                "<extract>",        "Set specific data to extract:"], #Specify data to extract [A, E, S, C, F, I, P, U, Q, X, M, T] (default A)
-            ["",  "",                           "   A",             "    Extract All (extract everything; default option)"],
-            ["",  "",                           "   E",             "    Extract Emails"],
-            ["",  "",                           "   S",             "    Extract Subdomains"],
-            ["",  "",                           "   C",             "    Extract Comments"],
-            ["",  "",                           "   F",             "    Extract Forms"],
-            ["",  "",                           "   I",             "    Extract IP addresses"],
-            ["",  "",                           "   P",             "    Extract Phone numbers"],
-            ["",  "",                           "   U",             "    Extract Internal urls"],
-            ["",  "",                           "   Q",             "    Extract Internal urls with parameters"],
-            ["",  "",                           "   X",             "    Extract External urls"],
-            ["",  "",                           "   M",             "    Extract Metadata"],
+            ["",    "",                         "   A",             "    Extract All (extract everything; default option)"],
+            ["",    "",                         "   E",             "    Extract Emails"],
+            ["",    "",                         "   S",             "    Extract Subdomains"],
+            ["",    "",                         "   C",             "    Extract Comments"],
+            ["",    "",                         "   F",             "    Extract Forms"],
+            ["",    "",                         "   I",             "    Extract IP addresses"],
+            ["",    "",                         "   P",             "    Extract Phone numbers"],
+            ["",    "",                         "   U",             "    Extract Internal urls"],
+            ["",    "",                         "   Q",             "    Extract Internal urls with parameters"],
+            ["",    "",                         "   X",             "    Extract External urls"],
+            ["",    "",                         "   M",             "    Extract Metadata"],
+            ["-ey", "--extension-yes",            "",                 "Process only URLs that end with <extension-yes>"],
+            ["-en", "--extension-no",             "",                 "Process all URLs that do not end with <extension-no>"],
             ["-g",  "--grouping",               "",                 "Group findings from multiple sources into one table"],
             ["-gc", "--grouping-complete",      "",                 "Group and merge findings from multiple sources into one result"],
             ["-gp", "--group-parameters",       "",                 "Group URL parameters"],
@@ -271,6 +280,8 @@ def parse_args():
     parser.add_argument("-d",  "--domain",             type=str)
     parser.add_argument("-f",  "--file",               type=str)
     parser.add_argument("-e",  "--extract",            type=str, default="A")
+    parser.add_argument("-ey", "--extension-yes",      type=str, nargs="+")
+    parser.add_argument("-en", "--extension-no",       type=str, nargs="+")
     parser.add_argument("-pd", "--post-data",          type=str)
     parser.add_argument("-o",  "--output",             type=str)
     parser.add_argument("-p",  "--proxy",              type=str)
