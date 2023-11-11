@@ -114,7 +114,7 @@ def _print_metadata(list_of_results, index, args):
             value = ', '.join(value)
         else:
             value = str(value).replace("\n", "\\n")
-        ptprinthelper.ptprint(f"{key}{' '*(len(longest_key)-len(key))}: {', '.join(value) if type(value) is list else value}", "", filehandle=args.file_handle, condition=not args.use_json)
+        ptprinthelper.ptprint(f"{key}{'.'*(len(longest_key)-len(key))}: {', '.join(value) if type(value) is list else value}", "", filehandle=args.file_handle, condition=not args.use_json)
 
 
 def _print_forms(list_of_results, index, args):
