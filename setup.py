@@ -5,7 +5,6 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-
 setuptools.setup(
     name="ptinsearcher",
     description="Source information extractor",
@@ -22,7 +21,7 @@ setuptools.setup(
         "Topic :: Security",
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"
     ],
-    python_requires = '>=3.6',
+    python_requires = '>=3.9',
     install_requires=["ptlibs>=1,<2", "requests", "bs4", "lxml", "tldextract>=5.0.0", "pyexiftool", "validators", "python-magic"],
     entry_points = {'console_scripts': ['ptinsearcher = ptinsearcher.ptinsearcher:main']},
     include_package_data= True,
@@ -30,6 +29,5 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     project_urls = {
         "Source": "https://github.com/Penterep/ptinsearcher",
-        "Facebook": "https://facebook.com/penterep"
     }
 )

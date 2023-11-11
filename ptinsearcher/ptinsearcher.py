@@ -55,20 +55,20 @@ class PtInsearcher:
 
     def run(self, args):
         list_of_results = []
-        for index, source in enumerate(self.url_list):
+        for index, target in enumerate(self.url_list):
             position = f'[{index+1}/{len(self.url_list)}]' if len(self.url_list) > 1 else ""
-            ptprinthelper.ptprint(f"Provided source.............: {source} {position}", "TITLE", not self.use_json, colortext=True, newline_above=True if len(self.url_list) > 1 and index != 0 else False)
+            ptprinthelper.ptprint(f"Provided source.............: {target} {position}", "TITLE", not self.use_json, colortext=True, newline_above=True if len(self.url_list) > 1 and index != 0 else False)
 
-            if self._is_website(source):
+            if self._is_url(target):
                 try:
-                    result_dict = websites.process_website(source, args, self.ptjsonlib, self.extract_types)
+                    result_dict = websites.process_website(target, args, self.ptjsonlib, self.extract_types)
                     if result_dict: list_of_results.append(result_dict)
                 except requests.exceptions.RequestException:
                     if len(self.url_list) > 1: ptprinthelper.ptprint("Server not responding", "ERROR", not self.use_json); continue
                     else: self.ptjsonlib.end_error("Server not responding", self.use_json)
 
-            elif self._is_file(source):
-                result = files.process_file(os.path.abspath(source), args, self.ptjsonlib, extract_types=self.extract_types)
+            elif self._is_local_file(target):
+                result = files.process_file(os.path.abspath(target), args, self.ptjsonlib, extract_types=self.extract_types)
                 if result: list_of_results.append(result)
 
             else:
@@ -77,6 +77,7 @@ class PtInsearcher:
                     continue
                 else:
                     self.ptjsonlib.end_ok("Provided source is neither a file or a valid URL", self.use_json)
+
 
 
             if not self.use_json and list_of_results:
@@ -118,18 +119,18 @@ class PtInsearcher:
         if args.extension_yes and args.extension_no:
             self.ptjsonlib.end_error("Cannot combine --extension-yes together with --extension-no", self.use_json)
 
-    def _is_file(self, source: str) -> bool:
+    def _is_local_file(self, source: str) -> bool:
         """Check whether the provided source is an existing file or not"""
         return os.path.isfile(source)
 
-    def _is_website(self, source: str) -> bool:
+    def _is_url(self, source: str) -> bool:
         """Check whether the provided source is a website or not"""
         regex = re.compile(
         r'^(?:http|ftp)s?://' # http:// or https://
         r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
         r'localhost|' #localhost...
         r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-        r'(?::\d+)?' # optional portS
+        r'(?::\d+)?' # optional ports
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
         return regex.match(source)
@@ -140,10 +141,6 @@ class PtInsearcher:
         if domain and not domain.endswith("/"):
             domain += "/"
         return domain
-
-
-
-
 
     def _get_url_list(self, args) -> list:
         if args.file:
@@ -252,8 +249,8 @@ def get_help():
             ["",    "",                         "   Q",             "    Extract Internal urls with parameters"],
             ["",    "",                         "   X",             "    Extract External urls"],
             ["",    "",                         "   M",             "    Extract Metadata"],
-            ["-ey", "--extension-yes",            "",                 "Process only URLs that end with <extension-yes>"],
-            ["-en", "--extension-no",             "",                 "Process all URLs that do not end with <extension-no>"],
+            ["-ey", "--extension-yes",            "",               "Process URLs that end with <extension-yes>"],
+            ["-en", "--extension-no",             "",               "Process URLs that do not end with <extension-no>"],
             ["-g",  "--grouping",               "",                 "Group findings from multiple sources into one table"],
             ["-gc", "--grouping-complete",      "",                 "Group and merge findings from multiple sources into one result"],
             ["-gp", "--group-parameters",       "",                 "Group URL parameters"],

@@ -9,19 +9,13 @@ def print_result(list_of_results: list, args):
         args.file_handle = open(args.output, "w")
 
     for index, title in enumerate(titles):
-        if title in ["url", "abs_urls"]:
-            continue
-
-        if args.output_parts:
-            args.file_handle = _get_handle(title, args)
-        if args.grouping_complete:
-            merged_result = _get_data_type(title)
+        if title in ["url", "abs_urls"]: continue
+        if args.output_parts: args.file_handle = _get_handle(title, args)
+        if args.grouping_complete: merged_result = _get_data_type(title)
 
         _print_title(title, args, index)
-
         for index, result_dictionary in enumerate(list_of_results):
-            if args.grouping:
-                _print_current_url(list_of_results, index, args)
+            if args.grouping: _print_current_url(list_of_results, index, args)
             if args.grouping_complete:
                 merged_result = _fill_merged_result(merged_result, list_of_results, index, title)
             else:
@@ -70,7 +64,8 @@ def _get_handle(title, args):
 def _print_title(title, args, index=0):
     if args.file_handle and index > 0:
         args.file_handle.write("\n")
-    ptprinthelper.ptprint(f'\n{ptprinthelper.get_colored_text(title.upper().replace("_", " "), color="TITLE")}\n{"=" * len(title)}', "", filehandle=args.file_handle, condition=not args.use_json)
+    #ptprinthelper.ptprint(f'\n{ptprinthelper.get_colored_text(title.upper().replace("_", " "), color="TITLE")}{"" * len(title)}', "", filehandle=args.file_handle, condition=not args.use_json)
+    ptprinthelper.ptprint(f'\n{ptprinthelper.get_colored_text(title.upper().replace("_", " "), color="TITLE")}\n{"-" * len(title)}', "", filehandle=args.file_handle, condition=not args.use_json)
 
 
 def _get_endl(list_of_results, index, args):
@@ -113,14 +108,21 @@ def _print_comments(list_of_results, index, args):
 
 
 def _print_metadata(list_of_results, index, args):
+    longest_key, _ = max(list_of_results[index]["metadata"].items(), key=lambda x: len(x[0]))
     for key, value in list_of_results[index]["metadata"].items():
-        value = str(value).replace("\n", "\\n")
-        ptprinthelper.ptprint(f"{key}{'.'*(32-len(key))}: {value}", "", filehandle=args.file_handle, condition=not args.use_json)
+        if type(value) is list:
+            value = ', '.join(value)
+        else:
+            value = str(value).replace("\n", "\\n")
+        ptprinthelper.ptprint(f"{key}{' '*(len(longest_key)-len(key))}: {', '.join(value) if type(value) is list else value}", "", filehandle=args.file_handle, condition=not args.use_json)
 
 
 def _print_forms(list_of_results, index, args):
     if args.grouping_complete:
-        _pretty_print_forms(list_of_results, index, args)
+        if not list_of_results[0]["forms"]:
+            ptprinthelper.ptprint("Not found", "", filehandle=args.file_handle, condition=not args.use_json)
+        else:
+            _pretty_print_forms(list_of_results, index, args)
     else:
         if not list_of_results[index]["forms"]:
             ptprinthelper.ptprint("Not found", "", filehandle=args.file_handle, condition=not args.use_json)

@@ -6,7 +6,7 @@ import html
 from bs4 import BeautifulSoup
 
 from ptlibs import ptprinthelper, ptmisclib, ptnethelper
-from modules import metadata, emails, comments, forms, phones, ip_addresses, urls
+from modules import metadata, emails, comments, forms, phone_numbers, ip_addresses, urls
 
 
 def process_website(url: str, args, ptjsonlib: object, extract_types: dict) -> dict:
@@ -20,7 +20,7 @@ def process_website(url: str, args, ptjsonlib: object, extract_types: dict) -> d
     response.encoding = response.apparent_encoding
     content_type = str(response.headers.get("content-type")).split(";")[0]
 
-    ptprinthelper.ptprint(f"Source-Type.................: website", "TITLE", not args.use_json)
+    ptprinthelper.ptprint(f"Source-Type.................: URL", "TITLE", not args.use_json)
     ptprinthelper.ptprint(f"Content-Type................: {content_type}", "TITLE", not args.use_json)
     ptprinthelper.ptprint(f"Status Code.................: {response.status_code}", "TITLE", not args.use_json, end=" ")
 
@@ -35,12 +35,15 @@ def process_website(url: str, args, ptjsonlib: object, extract_types: dict) -> d
 
 def _scrape_website(response, ptjsonlib, args, extract_types: dict) -> dict:
         """Extracts <extract_types> from HTML page"""
-        result_data = {"url": response.url, "metadata": None, "emails": None, "phones": None, "ip_addresses": None, "abs_urls": None, "internal_urls": None, "internal_urls_with_parameters": None, "external_urls": None, "subdomains": None, "forms": None, "comments": None}
-        soup = _get_soup(response, args)
-        page_content = urllib.parse.unquote(urllib.parse.unquote(html.unescape(soup.prettify()))) if soup else urllib.parse.unquote(urllib.parse.unquote(html.unescape(response.text)))
+        # TODO: Cokoliv co ma kontent type text/cokoliv, tak hledam i komentare, jinak preskakuju
+        # TODO: do --extract pridat dalsi pismenka, ktera budou specifikat typ komentare
+            # ABC - HTML, javascript, CSS
+
+        result_data = {"url": response.url, "metadata": None, "emails": None, "phone_numbers": None, "ip_addresses": None, "abs_urls": None, "internal_urls": None, "internal_urls_with_parameters": None, "external_urls": None, "subdomains": None, "forms": None, "comments": None}
+        page_content = urllib.parse.unquote(urllib.parse.unquote(html.unescape(response.text)))
 
         if extract_types["metadata"]:
-            result_data["metadata"] = metadata.get_metadata(page_content=page_content)
+            result_data["metadata"] = metadata.get_metadata(response=response)
             ptjsonlib.add_node(ptjsonlib.create_node_object("metadata", None, None, properties={"metadata": result_data["metadata"]}))
 
         if extract_types["emails"]:
@@ -52,8 +55,8 @@ def _scrape_website(response, ptjsonlib, args, extract_types: dict) -> dict:
             ptjsonlib.add_node(ptjsonlib.create_node_object("comments", None, None, properties={"comments": result_data["comments"]}))
 
         if extract_types["phone_numbers"]:
-            result_data["phones"] = phones.find_phones(page_content)
-            ptjsonlib.add_node(ptjsonlib.create_node_object("phones", None, None, properties={"phones": result_data["phones"]}))
+            result_data["phone_numbers"] = phone_numbers.find_phone_numbers(page_content)
+            ptjsonlib.add_node(ptjsonlib.create_node_object("phone_numbers", None, None, properties={"phone_numbers": result_data["phone_numbers"]}))
 
         if extract_types["ip_addresses"]:
             result_data["ip_addresses"] = ip_addresses.find_ip_addresses(page_content)
@@ -81,8 +84,9 @@ def _scrape_website(response, ptjsonlib, args, extract_types: dict) -> dict:
             result_data['subdomains'] = urls.find_urls_in_response(page_content, r'(href=|src=)[\'"](.+?)[\'"]', response.url, "subdomain", without_parameters=args.without_parameters, abs_urls=result_data["abs_urls"])
             ptjsonlib.add_node(ptjsonlib.create_node_object("subdomains", None, None, properties={"subdomains": result_data["subdomains"]}))
 
-        if soup:
-            if extract_types["forms"]:
+        if extract_types["forms"]:
+            soup = _get_soup(response, args)
+            if soup:
                 result_data["forms"] = forms.get_forms(soup)
                 ptjsonlib.add_node(ptjsonlib.create_node_object("form", None, None, properties={"forms": result_data["forms"]}))
 
@@ -128,7 +132,7 @@ def _stop_on_redirect(response, args):
             ptprinthelper.ptprint(f"[redirect] -> {ptprinthelper.get_colored_text(response.headers['location'], 'INFO')}", "", not args.use_json)
         if not response.headers.get("location"):
             ptprinthelper.ptprint(" ", "", not args.use_json)
-        ptprinthelper.ptprint("Redirects disabled, not following", "ERROR", not args.use_json, newline_above=True)
+        ptprinthelper.ptprint("Redirects disabled, use --redirect to follow", "ERROR", not args.use_json, newline_above=True)
         return True
     elif args.redirects and response.history:
         ptprinthelper.ptprint(f"[redirected] -> {ptprinthelper.get_colored_text(response.history[-1].headers['location'], 'INFO')}", "", not args.use_json)
