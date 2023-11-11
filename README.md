@@ -105,7 +105,7 @@ ptlibs
 
 ## Version History
 ```
-1.0.5
+1.0.5 - 1.0.7
     - Script improvements and bugfixes
 1.0.3 - 1.0.4
     - <file> error fix
