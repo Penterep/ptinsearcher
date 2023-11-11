@@ -35,10 +35,6 @@ def process_website(url: str, args, ptjsonlib: object, extract_types: dict) -> d
 
 def _scrape_website(response, ptjsonlib, args, extract_types: dict) -> dict:
         """Extracts <extract_types> from HTML page"""
-        # TODO: Cokoliv co ma kontent type text/cokoliv, tak hledam i komentare, jinak preskakuju
-        # TODO: do --extract pridat dalsi pismenka, ktera budou specifikat typ komentare
-            # ABC - HTML, javascript, CSS
-
         result_data = {"url": response.url, "metadata": None, "emails": None, "phone_numbers": None, "ip_addresses": None, "abs_urls": None, "internal_urls": None, "internal_urls_with_parameters": None, "external_urls": None, "subdomains": None, "forms": None, "comments": None}
         page_content = urllib.parse.unquote(urllib.parse.unquote(html.unescape(response.text)))
 
