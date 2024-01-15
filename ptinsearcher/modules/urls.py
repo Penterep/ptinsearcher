@@ -4,9 +4,7 @@ import urllib
 import re
 import validators
 
-import tldextract
-
-
+from ptlibs import tldparser
 
 def find_urls_in_file(file_content: str) -> list:
     """Return list of possible links in provided <file_content>."""
@@ -68,17 +66,19 @@ def find_urls_in_response(page_content: str, re_pattern: str, url: str, type_url
 
 def url2domain(url, with_subdomains=True, with_protocol=True) -> str:
     """Returns domain from provided url"""
-    protocol = url.split("//")[0] + "//" if with_protocol else ""
-    extract = tldextract.extract(url)
-    if extract.subdomain:
-        extract.subdomain += "."
+    parsed_url = tldparser.parse_url(url)
+    protocol = parsed_url.scheme + "://" if with_protocol else ""
+
+    if parsed_url.subdomain:
+        parsed_url.subdomain += "."
+
     if with_subdomains:
-        if not extract.suffix: # e.g. ip address
-            return protocol + extract.subdomain + extract.domain
+        if not parsed_url.suffix: # e.g. ip address
+            return protocol + parsed_url.subdomain + parsed_url.domain
         else:
-            return protocol + extract.subdomain + extract.domain + "." + extract.suffix
+            return protocol + parsed_url.subdomain + parsed_url.domain + "." + parsed_url.suffix
     else:
-        return protocol + extract.domain + "." + extract.suffix
+        return protocol + parsed_url.domain + "." + parsed_url.suffix
 
 
 def rel2abs(url, domain):
