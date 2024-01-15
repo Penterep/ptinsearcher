@@ -97,7 +97,6 @@ requests
 bs4
 lxml
 pyexiftool
-tldextract
 magic
 ptlibs
 ```
@@ -105,14 +104,14 @@ ptlibs
 
 ## Version History
 ```
+1.0.8
+    - Custom tldparser implemented
 1.0.5 - 1.0.7
     - Script improvements and bugfixes
 1.0.3 - 1.0.4
     - <file> error fix
     - content-type error fix
-1.0.1 - 1.0.2
-    - tldextract version fix
-1.0.0
+1.0.0 - 1.0.2
     - Script logically divided into relevant submodules
     - Code refactorization
     - Updated for latest ptlibs
