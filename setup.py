@@ -22,7 +22,7 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"
     ],
     python_requires = '>=3.9',
-    install_requires=["ptlibs>=1,<2", "requests", "bs4", "lxml", "pyexiftool", "validators", "python-magic"],
+    install_requires=["ptlibs>=1.0.5,<2", "requests", "bs4", "lxml", "pyexiftool", "validators", "python-magic"],
     entry_points = {'console_scripts': ['ptinsearcher = ptinsearcher.ptinsearcher:main']},
     include_package_data= True,
     long_description=long_description,
